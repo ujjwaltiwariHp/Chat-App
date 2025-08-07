@@ -2,15 +2,30 @@ const express = require('express');
 const { createServer } = require('node:http');
 const { join } = require('node:path');
 const { Server } = require('socket.io');
+const { availableParallelism } = require('node:os');
+const cluster = require('node:cluster');
+const { createAdapter, setupPrimary } = require('@socket.io/cluster-adapter');
 require('dotenv').config();
 
 const { saveMessage, getRecentMessages, getMessagesAfter } = require('./models/messageModel');
 
-const app = express();
-const server = createServer(app);
-const io = new Server(server, {
-  connectionStateRecovery: {},
-});
+if (cluster.isPrimary) {
+  const numCPUs = availableParallelism();
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork({
+      PORT: 3000 + i
+    });
+  }
+  return setupPrimary(); 
+}
+
+  async function main() {
+  const app = express();
+  const server = createServer(app);
+  const io = new Server(server, {
+    connectionStateRecovery: {},
+    adapter: createAdapter()
+  });
 
 app.use(express.static(join(__dirname, 'public')));
 
@@ -64,6 +79,10 @@ io.on('connection', async (socket) => {
   });
 });
 
-server.listen(3000, () => {
-  console.log('Server running at http://localhost:3000');
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
 });
+}
+
+main();
