@@ -31,22 +31,29 @@ app.get('/', (req, res) => {
 
 io.on('connection', async (socket) => {
   console.log('a user connected');
-     try {
+
+  socket.on('error', (err) => {
+    console.error('Socket error:', err);
+  });
+  try {
     await getRecentMessages();
     socket.emit('recent messages', recentMessages);
   } catch (err) {
     console.error('Error fetching recent messages:', err);
+    socket.emit('error', 'Could not fetch recent messages');
   }
-
   socket.on('chat message', async (msg) => {
-    console.log('message: ' + msg);
-
+    console.log('message:', msg);
     try {
       await saveMessage(msg);
+      io.emit('chat message', msg);
     } catch (err) {
       console.error('Error saving message to DB:', err);
+      socket.emit('error', 'Could not save message');
     }
-    io.emit('chat message', msg);
+  });
+  socket.on('disconnect', (reason) => {
+    console.log(`User disconnected. Reason: ${reason}`);
   });
 });
 
