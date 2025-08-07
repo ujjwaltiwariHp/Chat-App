@@ -57,18 +57,19 @@ io.on('connection', async (socket) => {
     }
   }
 
-  socket.on('chat message', async (msg, clientOffset, callback) => {
-    try {
-      const insertedId = await saveMessage(msg, clientOffset);
-      if (insertedId !== undefined) {
-        io.emit('chat message', msg, insertedId);
-      }
-      callback(); 
-    } catch (err) {
-      console.error('Error saving message to DB:', err);
-      callback(); 
+socket.on('chat message', async (msg, clientOffset, callback) => {
+  try {
+    const insertedId = await saveMessage(msg, clientOffset);
+    if (insertedId !== undefined) {
+      io.emit('chat message', msg, insertedId);
     }
-  });
+    if (typeof callback === 'function') callback(); 
+  } catch (err) {
+    console.error('Error saving message to DB:', err);
+    if (typeof callback === 'function') callback(); 
+  }
+});
+
 
   socket.on('disconnect', (reason) => {
     console.log(`User disconnected. Reason: ${reason}`);
