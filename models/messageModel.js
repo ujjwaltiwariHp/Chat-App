@@ -6,7 +6,7 @@ async function saveMessage(content, clientOffset) {
       `INSERT INTO messages (content, client_offset)
        VALUES ($1, $2)
        ON CONFLICT (client_offset) DO NOTHING
-       RETURNING id`,
+       RETURNING id,timestamp`,
       [content, clientOffset]
     );
     return result.rows[0]?.id; 
@@ -16,14 +16,14 @@ async function saveMessage(content, clientOffset) {
 }
 async function getRecentMessages() {
   const result = await pool.query(
-    'SELECT id, content FROM messages ORDER BY id DESC LIMIT 10'
+    'SELECT id, content,timestamp FROM messages ORDER BY id DESC LIMIT 10'
   );
   return result.rows.reverse(); 
 }
 
 async function getMessagesAfter(offset) {
   const result = await pool.query(
-    'SELECT id, content FROM messages WHERE id > $1 ORDER BY id ASC',
+    'SELECT id, content,timestamp FROM messages WHERE id > $1 ORDER BY id ASC',
     [offset]
   );
   return result.rows;

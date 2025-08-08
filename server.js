@@ -49,9 +49,14 @@ io.on('connection', async (socket) => {
     const serverOffset = socket.handshake.auth.serverOffset || 0;
     try {
       const missedMessages = await getMessagesAfter(serverOffset);
-      missedMessages.forEach((msg) => {
-        socket.emit('chat message', msg.content, msg.id);
-      });
+            missedMessages.forEach((msg) => {
+              socket.emit('chat message', {
+          content: msg.content,
+          id: msg.id,
+          timestamp: msg.timestamp
+       });
+    });
+
     } catch (err) {
       console.error('Error recovering messages:', err);
     }
@@ -60,8 +65,15 @@ io.on('connection', async (socket) => {
 socket.on('chat message', async (msg, clientOffset, callback) => {
   try {
     const insertedId = await saveMessage(msg, clientOffset);
-    if (insertedId !== undefined) {
-      io.emit('chat message', msg, insertedId);
+        if (insertedId !== undefined) {
+          const fullMessage = {
+      content: msg,
+      id: insertedId,
+      client_offset: clientOffset,
+      timestamp: new Date().toISOString() 
+    };
+    io.emit('chat message', fullMessage);
+
     }
     if (typeof callback === 'function') callback(); 
   } catch (err) {
