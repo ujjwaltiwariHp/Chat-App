@@ -1,0 +1,33 @@
+{
+  "name": "chat-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "dev": "DOTENV_CONFIG_QUIET=true nodemon server.js",
+    "start": "DOTENV_CONFIG_QUIET=true node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ujjwaltiwariHp/Chat-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ujjwaltiwariHp/Chat-App/issues"
+  },
+  "homepage": "https://github.com/ujjwaltiwariHp/Chat-App#readme",
+  "dependencies": {
+    "@socket.io/cluster-adapter": "^0.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1"
+  }
+}

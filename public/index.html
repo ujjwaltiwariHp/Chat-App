@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Socket.IO chat</title>
+  <style>
+    body {
+      margin: 0;
+      padding-bottom: 3rem;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #111b21;
+      color: #e9edef;
+      height: 100vh;
+      overflow-x: hidden;
+    }
+
+    #login-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #login-form {
+      background: #202c33;
+      padding: 2rem;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 300px;
+    }
+
+    #username-input {
+      width: 100%;
+      padding: 0.8rem;
+      margin: 1rem 0;
+      border: none;
+      border-radius: 5px;
+      background-color: #2a3942;
+      color: white;
+      box-sizing: border-box;
+    }
+
+    #login-btn {
+      background: #005c4b;
+      color: white;
+      border: none;
+      padding: 0.8rem 2rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #header {
+      background: #202c33;
+      padding: 1rem;
+      border-bottom: 1px solid #2a3942;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #current-user {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #user-profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    #online-users {
+      color: #aebac1;
+      font-size: 0.9rem;
+    }
+
+    #messages-container {
+      height: calc(100vh - 120px);
+      overflow-y: auto;
+      padding-bottom: 1rem;
+    }
+
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-height: calc(100vh - 140px);
+    }
+
+    #messages > li {
+      max-width: 70%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.7rem;
+      font-size: 0.95rem;
+      word-wrap: break-word;
+      display: inline-block;
+      position: relative;
+      margin-bottom: 0.3rem;
+    }
+
+    .sent {
+      align-self: flex-end;
+      background-color: #005c4b;
+      color: white;
+      border-bottom-right-radius: 0;
+      margin-left: auto;
+    }
+
+    .received {
+      align-self: flex-start;
+      background-color: #202c33;
+      color: white;
+      border-bottom-left-radius: 0;
+      margin-left: 50px; 
+    }
+
+    .system-message {
+      align-self: center;
+      background-color: #182229;
+      color: #8696a0;
+      font-size: 0.85rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 1rem;
+      max-width: 250px;
+      text-align: center;
+      margin: 0.2rem auto;
+    }
+
+    .username {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #00a884;
+      margin-bottom: 0.2rem;
+    }
+
+    .message-content {
+      margin-bottom: 0.2rem;
+    }
+
+    .timestamp {
+      font-size: 0.7rem;
+      color: #aebac1;
+      text-align: right;
+      margin-top: 0.2rem;
+    }
+
+    .profile-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 0.8rem;
+      position: absolute;
+      top: 0;
+      left: -42px;
+    }
+
+    #form {
+      background: #202c33;
+      padding: 0.4rem;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      gap: 0.5rem;
+      height: 3rem;
+      box-sizing: border-box;
+      border-top: 1px solid #2a3942;
+    }
+
+    #input {
+      flex-grow: 1;
+      border: none;
+      padding: 0 1rem;
+      border-radius: 20px;
+      background-color: #2a3942;
+      color: white;
+    }
+
+    #input::placeholder {
+      color: #aebac1;
+    }
+
+    #input:focus {
+      outline: none;
+    }
+
+    #form > button {
+      background: #005c4b;
+      border: none;
+      padding: 0 1rem;
+      border-radius: 3px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #3b4a54;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #111b21;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="login-modal">
+    <div id="login-form">
+      <h2>Welcome to Chat</h2>
+      <p>Enter your username to start chatting</p>
+      <input id="username-input" type="text" placeholder="Enter your username..." maxlength="20" />
+      <br>
+      <button id="login-btn">Join Chat</button>
+    </div>
+  </div>
+  <div id="header" class="hidden">
+    <div id="current-user">
+      <div id="user-profile-icon"></div>
+      <div id="current-user-name"></div>
+    </div>
+    <div id="online-users"></div>
+  </div>
+
+  <div id="messages-container" class="hidden">
+    <ul id="messages"></ul>
+  </div>
+
+  <form id="form" action="" class="hidden">
+    <input id="input" autocomplete="off" placeholder="Type your message..." />
+    <button type="submit">Send</button>
+    <button type="button" id="toggle-btn">Disconnect</button>
+  </form>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    let counter = 0;
+    let currentUsername = '';
+    const sentOffsets = new Set();
+    const joinedUsers = new Set(); 
+    
+    const socket = io({
+      auth: {
+        serverOffset: 0
+      },
+      ackTimeout: 10000,
+      retries: 3,
+    });
+
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
+    const messagesContainer = document.getElementById('messages-container');
+    const toggleButton = document.getElementById('toggle-btn');
+
+    const loginModal = document.getElementById('login-modal');
+    const usernameInput = document.getElementById('username-input');
+    const loginBtn = document.getElementById('login-btn');
+    const header = document.getElementById('header');
+    const currentUserName = document.getElementById('current-user-name');
+    const userProfileIcon = document.getElementById('user-profile-icon');
+    const onlineUsersDiv = document.getElementById('online-users');
+
+    function getUserColor(username) {
+      const colors = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)'
+      ];
+      
+      let hash = 0;
+      for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const h = hours % 12 || 12;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      return h + ':' + minutes.toString().padStart(2, '0') + ' ' + ampm;
+    }
+
+      function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function getProfileIcon(username) {
+      return username ? username.charAt(0).toUpperCase() : '?';
+    }
+
+    function addMessage(text, type, timestamp, username = null, isSystemMessage = false) {
+      const item = document.createElement('li');
+      const time = timestamp ? formatTime(timestamp) : '';
+      
+      if (isSystemMessage) {
+        item.innerHTML = '<div class="message-content">' + text + '</div>';
+        item.classList.add('system-message');
+      } else {
+        const isOwnMessage = username === currentUsername;
+        const showProfile = type === 'received' && username && !isOwnMessage;
+        
+        let profileIconHtml = '';
+        if (showProfile) {
+          profileIconHtml = '<div class="profile-icon" style="background: ' + getUserColor(username) + '">' + getProfileIcon(username) + '</div>';
+        }
+        
+        item.innerHTML = 
+          profileIconHtml +
+          (showProfile ? '<div class="username">' + username + '</div>' : '') +
+          '<div class="message-content">' + text + '</div>' +
+          '<div class="timestamp">' + time + '</div>';
+        
+        item.classList.add(isOwnMessage || type === 'sent' ? 'sent' : 'received');
+      }
+      
+      messages.appendChild(item);
+      scrollToBottom();
+    }
+
+    function handleLogin() {
+      const username = usernameInput.value.trim();
+      if (username) {
+        currentUsername = username;
+        socket.emit('user login', username);
+        loginModal.classList.add('hidden');
+        header.classList.remove('hidden');
+        messagesContainer.classList.remove('hidden');
+        form.classList.remove('hidden');
+        
+        currentUserName.textContent = username;
+        userProfileIcon.textContent = getProfileIcon(username);
+        userProfileIcon.style.background = getUserColor(username);
+        
+        loadRecentMessages();
+      }
+    }
+
+    loginBtn.addEventListener('click', handleLogin);
+    usernameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    function loadRecentMessages() {
+      fetch('/recent_messages')
+        .then(response => response.json())
+        .then(data => {
+          messages.innerHTML = ''; 
+          data.forEach(msg => {
+            addMessage(msg.content, 'received', msg.timestamp, msg.username, false);
+          });
+          scrollToBottom();
+        });
+    }
+
+    socket.on('online users', (users) => {
+      onlineUsersDiv.textContent = 'Online: ' + users.join(', ');
+    });
+
+    socket.on('user joined', (username) => {
+      if (!joinedUsers.has(username) && username !== currentUsername) {
+        joinedUsers.add(username);
+        addMessage(username + ' joined the chat', 'received', new Date().toISOString(), null, true);
+      }
+    });
+
+    socket.on('user left', (username) => {
+      joinedUsers.delete(username);
+      addMessage(username + ' left the chat', 'received', new Date().toISOString(), null, true);
+    });
+
+    toggleButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (socket.connected) {
+        toggleButton.innerText = 'Connect';
+        socket.disconnect();
+      } else {
+        toggleButton.innerText = 'Disconnect';
+        socket.connect();
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (input.value && currentUsername) {
+        const clientOffset = socket.id + '-' + counter++;
+        sentOffsets.add(clientOffset);
+        socket.emit('chat message', input.value, clientOffset);
+        addMessage(input.value, 'sent', new Date().toISOString(), currentUsername, false);
+        input.value = '';
+      }
+    });
+
+    socket.on('chat message', (msg) => {
+      if (sentOffsets.has(msg.client_offset)) return;
+      addMessage(msg.content, 'received', msg.timestamp, msg.username, false);
+    });
+    usernameInput.focus();
+  </script>
+</body>
+</html>
